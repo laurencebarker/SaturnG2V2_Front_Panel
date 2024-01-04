@@ -12,8 +12,7 @@
 
 #include <Arduino.h>
 #include "globalinclude.h"
-//#include "encoders.h"
-//#include "led.h"
+#include "encoders.h"
 
 #include <EEPROM.h>
 
@@ -92,6 +91,7 @@ void LoadSettingsFromEEprom(void)
 //
   GEncoderDivisor = (byte)EEPROM.read(Addr++);
   GVFOEncoderDivisor = (byte)EEPROM.read(Addr++);
+  SetEncoderDivisors(GEncoderDivisor, GVFOEncoderDivisor);
 }
 
 

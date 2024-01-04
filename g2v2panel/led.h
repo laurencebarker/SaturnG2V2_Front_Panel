@@ -12,8 +12,8 @@
 #define __LED_H
 #include <Arduino.h>
 
-#define VLEDBANDSHIFT 10
-#define VLEDENCODERSHIFT 11
+#define VLEDBANDSHIFT 9                   // (external number = 10)
+#define VLEDENCODERSHIFT 10                // (external number = 11)
 
 // declare extern variables
 extern byte I2CLEDBits;                  // 3 bits data for LEDs, in bits 2:0

@@ -258,15 +258,21 @@ void ProcessButtonEvent(EEventType ButtonEvent)
     {
       SendButtonCode(ButtonEvent, ScanCode, false);
     }
-    else if ((ScanCode == VBANDSHIFTSCANCODE) && (ButtonEvent == eButtonPressed))  // process band shift
+    else if (ScanCode == VBANDSHIFTSCANCODE)  // process band shift
     {
-      GBandShiftActive = !GBandShiftActive;
-      SetLED(VLEDBANDSHIFT, GBandShiftActive);
+      if(ButtonEvent == eEvButtonPress)
+      {
+        GBandShiftActive = !GBandShiftActive;
+        SetLED(VLEDBANDSHIFT, GBandShiftActive);
+      }
     }
-    else if ((ScanCode == VENCODERSHIFTSCANCODE) && (ButtonEvent == eButtonPressed))   // process encoder shift
+    else if (ScanCode == VENCODERSHIFTSCANCODE)   // process encoder shift
     {
-      GEncoderShiftActive = !GEncoderShiftActive;
-      SetLED(VLEDENCODERSHIFT, GEncoderShiftActive);
+      if(ButtonEvent == eEvButtonPress)
+      {
+        GEncoderShiftActive = !GEncoderShiftActive;
+        SetLED(VLEDENCODERSHIFT, GEncoderShiftActive);
+      }
     }
     else                                // normal button event
     {
@@ -323,7 +329,7 @@ void ButtonTick(void)
         if (Row == GFoundRow)               // same button pressed
         {
           GScanState = eButtonPressed;
-          ProcessButtonEvent(eButtonPress);                  // action the button press as a short press
+          ProcessButtonEvent(eEvButtonPress);                  // action the button press as a short press
           GLongPressCounter = VLONGPRESSTHRESHOLD;          // initialise count
         }
         else                                // single button pressed
@@ -343,13 +349,13 @@ void ButtonTick(void)
         {
           GScanState = eMultiPressed;
           GDebounceTickCounter = VDEBOUNCETICKS;
-          ProcessButtonEvent(eButtonRelease);
+          ProcessButtonEvent(eEvButtonRelease);
         }
         else                                // same button, so see if a long press
         {
           if(GLongPressCounter != 0)        // if we decrement the long press timeout to zero
             if(--GLongPressCounter == 0)    // it will be a long press
-              ProcessButtonEvent(eButtonLongpress);          // action the button press as a long press
+              ProcessButtonEvent(eEvButtonLongpress);          // action the button press as a long press
         }
         break;
       
@@ -358,7 +364,7 @@ void ButtonTick(void)
         {
           GScanState = eIdle;
           GDebounceTickCounter = VDEBOUNCETICKS;
-          ProcessButtonEvent(eButtonRelease);
+          ProcessButtonEvent(eEvButtonRelease);
         }
         else if (Row != GFoundRow)          // multiple or different button pressed
         {

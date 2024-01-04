@@ -168,7 +168,7 @@ void EncoderTick(void)
   
   EncoderValues = ReadMCPRegister16(0, GPIOA);             // read 16 bit encoder values
   Encoder9_12 = ReadDirectWiredEncoders();      // read encoders that are direct wired
-  
+
   EncoderList[3].Ptr->service((byte)(EncoderValues & 0b11));
   EncoderValues = EncoderValues >> 2;
   
@@ -210,7 +210,7 @@ void EncoderTick(void)
         EventData = (Movement & 0x0F) | ((Cntr+2) << 4);
       else
         EventData = (Movement & 0x0F) | (Cntr << 4);
-      AddEvent2Q(eEncoderStep, EventData);
+      AddEvent2Q(eEvEncoderStep, EventData);
     }
   }
 
@@ -221,11 +221,12 @@ void EncoderTick(void)
   if (--GVFOCycleCount == 0)
   {
     GVFOCycleCount = VVFOCYCLECOUNT;
+
     signed char ct = ReadOpticalEncoder();
     if (ct != 0)
     {
       EventData = (byte)ct;
-      AddEvent2Q(eVFOStep, EventData);
+      AddEvent2Q(eEvVFOStep, EventData);
     }
   }
 }

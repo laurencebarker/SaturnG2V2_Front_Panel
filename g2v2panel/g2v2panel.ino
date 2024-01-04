@@ -17,6 +17,7 @@
 #include "encoders.h"
 #include "SPIdata.h"
 #include "button.h"
+#include "eventqueue.h"
 
 
 //
@@ -74,6 +75,7 @@ void setup()
 // encoder
 //
   InitEncoders();
+  InitialiseI2CSlave();
 }
 
 
@@ -117,16 +119,19 @@ void loop()
     }
     else
       Counter--;
-  }
 
-    EncoderTick();                                // update encoder inputs
-    ButtonTick();                                 // update the pushbutton sequencer
+//
+// 2ms tick code here:
+//
+  EventQueueTick();                             // update LEDs
+  EncoderTick();                                // update encoder inputs
+  ButtonTick();                                 // update the pushbutton sequencer
     
 // 
 // last action - drive the new switch matrix column output
 //
-    AssertMatrixColumn();
-
+  AssertMatrixColumn();
+  }
 }
 
 

@@ -15,6 +15,8 @@
 #include <Arduino.h>
 
 
+#define VQUEUESIZE 16
+#define VMAXQUEUEENTRIES 15
 
 //
 // enum for the event types
@@ -22,18 +24,40 @@
 enum EEventType 
 {
   eNoEvent,                           // no event present
-  eVFOStep,                           // VFO encoder steps
-  eEncoderStep,                       // ordinary encoder steps
-  eButtonPress,                       // pushbutton press
-  eButtonLongpress,                   // pushbutton long press
-  eButtonRelease                      // pushbutton release
+  eEvVFOStep,                           // VFO encoder steps
+  eEvEncoderStep,                       // ordinary encoder steps
+  eEvButtonPress,                       // pushbutton press
+  eEvButtonLongpress,                   // pushbutton long press
+  eEvButtonRelease                      // pushbutton release
 };
+
+//
+// function to get the number of entries in the queue
+//
+byte GetQEntries();
+
 
 //
 // function to add an event to the output queue
 //
 void AddEvent2Q(EEventType Event, byte EventData);
 
+//
+// function to get an event from the queue
+// return true if successful; entry returned into passed param
+//
+bool GetEventFromQ(unsigned int *Event);
 
+//
+// initialise I2C slave
+//
+void InitialiseI2CSlave(void);
+
+
+//
+// eventqueue Tick
+// simply set LEDs to required state
+//
+void EventQueueTick(void);
 
 #endif
