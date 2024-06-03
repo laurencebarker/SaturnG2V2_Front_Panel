@@ -17,6 +17,7 @@
 
 // declare extern variables
 extern byte I2CLEDBits;                  // 3 bits data for LEDs, in bits 2:0
+extern bool LEDTestComplete;             // true if tests complete
 
 
 //
@@ -30,6 +31,14 @@ void SetLED(byte LEDNumber, bool State);
 // clear all LEDs
 //
 void ClearLEDs(void);
+
+
+//
+// LEDSelfTest
+// called after power up to test all LEDs; 
+// cycled through and lights each in turn until finished.
+//
+void LEDSelfTest(void);
 
 
 #endif //#ifndef

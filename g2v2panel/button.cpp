@@ -263,7 +263,8 @@ void ProcessButtonEvent(EEventType ButtonEvent)
       if(ButtonEvent == eEvButtonPress)
       {
         GBandShiftActive = !GBandShiftActive;
-        SetLED(VLEDBANDSHIFT, GBandShiftActive);
+        if(LEDTestComplete)
+          SetLED(VLEDBANDSHIFT, GBandShiftActive);
       }
     }
     else if (ScanCode == VENCODERSHIFTSCANCODE)   // process encoder shift
@@ -271,7 +272,8 @@ void ProcessButtonEvent(EEventType ButtonEvent)
       if(ButtonEvent == eEvButtonPress)
       {
         GEncoderShiftActive = !GEncoderShiftActive;
-        SetLED(VLEDENCODERSHIFT, GEncoderShiftActive);
+        if(LEDTestComplete)
+          SetLED(VLEDENCODERSHIFT, GEncoderShiftActive);
       }
     }
     else                                // normal button event

@@ -14,6 +14,10 @@
 #include "iopins.h"
 
 byte I2CLEDBits;                  // 3 bits data for LEDs, in bits 2:0 (init to zero by button.cpp)
+bool LEDTestComplete;             // true if tests complete
+byte TestLED;                     // LED number to test
+byte LEDLitTime;                  // time count (in ticks) each LED lit for
+
 #define VLEDBITMASK 0b11110000    // bit mask for LED bits that are allowed to be set
 
 //
@@ -87,4 +91,40 @@ void ClearLEDs(void)
 
   for (Cntr = 0; Cntr < VMAXINDICATORS; Cntr++)
     SetLED(Cntr, false);
+}
+
+
+byte LEDTestOrder[] = {0, 1, 2, 4, 3, 8, 7, 6, 5, 9, 10};
+
+#define VTESTTIMEPERLED 250       // 500ms
+
+//
+// LEDSelfTest
+// called after power up to test all LEDs; 
+// cycled through and lights each in turn until finished.
+// TestLED=1 means we are testing LED0
+//
+void LEDSelfTest(void)
+{
+  if(!LEDTestComplete)
+  {
+    if(LEDLitTime == 0)                 // if timed out - move on to next LED
+    {
+      if(TestLED == VMAXINDICATORS)     // if we have lit the last one
+      {
+        LEDTestComplete = true;
+        ClearLEDs();
+      }
+      else                              // increment LED & re-start count
+      {
+        LEDLitTime = VTESTTIMEPERLED;
+        if (TestLED > 0)                // turn off previous LED
+          SetLED(LEDTestOrder[TestLED-1], false);
+        TestLED++;                      // and light new one
+        SetLED(LEDTestOrder[TestLED-1], true);
+      }
+    }
+    else
+      LEDLitTime--;
+  }
 }

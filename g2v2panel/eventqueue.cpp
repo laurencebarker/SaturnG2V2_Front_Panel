@@ -214,7 +214,7 @@ void InitialiseI2CSlave(void)
 
 //
 // eventqueue Tick
-// simply set LEDs to required state from CommandWord
+// for test: simply set LEDs to required state from CommandWord
 //
 void EventQueueTick(void)
 {
@@ -226,7 +226,8 @@ void EventQueueTick(void)
   for(LED=0; LED < VMAXINDICATORS; LED++)
   {
     State = (bool)(Word &1);
-    SetLED(LED, State);
+    if(LEDTestComplete)
+    //  SetLED(LED, State);
     Word = Word >> 1;
   }
 }

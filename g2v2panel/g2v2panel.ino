@@ -18,6 +18,7 @@
 #include "SPIdata.h"
 #include "button.h"
 #include "eventqueue.h"
+#include "led.h"
 
 
 //
@@ -126,7 +127,7 @@ void loop()
   EventQueueTick();                             // update LEDs
   EncoderTick();                                // update encoder inputs
   ButtonTick();                                 // update the pushbutton sequencer
-    
+  LEDSelfTest();                                // selftest of LEDs at startup
 // 
 // last action - drive the new switch matrix column output
 //
