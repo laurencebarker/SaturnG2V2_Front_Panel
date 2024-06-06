@@ -99,9 +99,9 @@ void AddEvent2Q(EEventType Event, byte EventData)
       WritePtr = 0;
     interrupts();
 //
-// set interrupt out
+// set interrupt out, by enabling pin as output (data pre-set to zero)
 //
-  digitalWrite(VPINPIINTERRUPT, HIGH);
+  pinMode(VPINPIINTERRUPT, OUTPUT);                     // interrupt output
   }
 
   signed char Steps;
@@ -176,14 +176,17 @@ void requestEvent()
 //
 // clear interrupt out if last one read
 //
-  if(Entries == 1)
-    digitalWrite(VPINPIINTERRUPT, LOW);
+  if(Entries <= 1)
+    pinMode(VPINPIINTERRUPT, INPUT);                     // interrupt output deasserted
 }
 
 
 //
 // interrupt handler for for I2C slave write operation
 // simply store new command word for processing in normal sequence
+// GSendVersion set if command is to send out versino information
+// GShiftOverride set if all 11 LEDs should be set by the software
+// commands are stored here; processed by 2ms tick code. 
 //
 void receiveEvent(int Count)
 {
@@ -192,7 +195,7 @@ void receiveEvent(int Count)
   while(Wire.available()) // loop through all but the last
   {
     Data = Wire.read(); // receive byte as a character
-    if(Cntr == 0)
+    if(Cntr++ == 0)
       CommandWord = Data;
     else
       CommandWord = (CommandWord & 0xFF) | (Data << 8);
@@ -214,21 +217,30 @@ void InitialiseI2CSlave(void)
 
 //
 // eventqueue Tick
-// for test: simply set LEDs to required state from CommandWord
+// process any command word provided
+// simply set LEDs to required state from CommandWord, when not in test mode
 //
 void EventQueueTick(void)
 {
   byte LED;
   bool State;
   unsigned int Word;
+  byte LEDCount = VMAXINDICATORS;
 
-  Word = CommandWord;
-  for(LED=0; LED < VMAXINDICATORS; LED++)
+  if(LEDTestComplete)
   {
-    State = (bool)(Word &1);
-    if(LEDTestComplete)
-    //  SetLED(LED, State);
-    Word = Word >> 1;
+// if override bit not set, we don't set the two highest LED bits
+//(these are controlled locally by the "shift" buttons)
+//
+    if(!GShiftOverride)
+      LEDCount -= 2;
+    Word = CommandWord;                       // get LED settings
+    for(LED=0; LED < LEDCount; LED++)
+    {
+      State = (bool)(Word &1);                // get LED state
+      SetLED(LED, State);
+      Word = Word >> 1;
+    }
   }
 }
 

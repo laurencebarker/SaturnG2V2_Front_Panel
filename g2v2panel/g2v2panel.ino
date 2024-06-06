@@ -152,7 +152,6 @@ void ConfigIOPins(void)
   pinMode(VPININDICATOR10, OUTPUT);                     // LED indicator
   pinMode(VPININDICATOR11, OUTPUT);                     // LED indicator
   
-  pinMode(VPINPIINTERRUPT, OUTPUT);                     // interrupt output
   pinMode(VPINMCPCS0, OUTPUT);                          // chip select output
   pinMode(VPINMCPCS1, OUTPUT);                          // chip select output
   pinMode(VPINBLINKLED, OUTPUT);
@@ -170,9 +169,16 @@ void ConfigIOPins(void)
   digitalWrite(VPININDICATOR10, LOW);                   // LED indicator
   digitalWrite(VPININDICATOR11, LOW);                   // LED indicator
   
-  digitalWrite(VPINPIINTERRUPT, LOW);                   // interrupt output
   digitalWrite(VPINMCPCS0, HIGH);                       // chip select output
   digitalWrite(VPINMCPCS1, HIGH);                       // chip select output
   digitalWrite(VPINBLINKLED, LOW);                      // debug LED output
+
+//
+// finally setup interrupt output: set low (to disable pullup)
+// but only set to be an output if interrupt asserted.
+//
+  digitalWrite(VPINPIINTERRUPT, LOW);                   // interrupt output
+  pinMode(VPINPIINTERRUPT, INPUT);                     // interrupt output
+
 }
 
