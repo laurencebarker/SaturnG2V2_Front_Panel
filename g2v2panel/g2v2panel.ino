@@ -53,7 +53,6 @@ void SetupTimerForInterrupt(int Milliseconds)
 void setup() 
 {
   Serial.begin(9600);                 // PC communication
-  Wire.begin();                       // I2C
   Wire.setClock(400000);
 
   delay(1000);

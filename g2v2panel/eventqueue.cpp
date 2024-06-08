@@ -18,7 +18,10 @@
 #include "globalinclude.h"
 #include "button.h"
 
-#define VI2CSLAVEADDR 0x15
+#define VI2CSLAVEADDR 0x15                    // Arduino slave address
+#define VLEDADDR 0x0A                         // LED register address
+#define VEVENTADDR 0x0B                       // event register address
+#define VIDADDR 0x0C                          // ID/version register address
 
 //
 // the event queue is a simple circular buffer implemented using an array.
@@ -29,7 +32,8 @@ byte ReadPtr;                                 // entry number to read from
 unsigned int EventQ[VQUEUESIZE];              // declare event queue
 unsigned int CommandWord;                     // new 2 byte command word from pi
 bool GSendVersion;                            // true if commanded to send ot version not data.
-
+unsigned int GLEDWord;                        // LED states; top bit is PBX
+unsigned int GAddressRegister;                // I2C slave address requested
 
 //
 // function to get the number of entries in the queue
@@ -152,7 +156,11 @@ void AddEvent2Q(EEventType Event, byte EventData)
   }
 }
 
-
+//
+// note that I2C transfers are not simple, and begine wth a register address WRITE to Arduino.WritePtr
+// Slave write: 3 byte to Arduino (receiveEvent)
+// Slave read: 1 byte to Arduino (receivEvent) followed by 2 bytes from Arduino (requestEvent)
+//
 
 //
 // interrupt handler when data requested from I2C slave read
@@ -163,15 +171,22 @@ void requestEvent()
   bool Success;
   unsigned int Entries;
   unsigned int Response = 0;                  // response code to I2C
+  Serial.println("requestEvent");
+
   Entries = (unsigned int)GetQEntries();
-  if(GSendVersion)
+  if(GAddressRegister == VIDADDR)
     Response = (PRODUCTID << 8) | SWVERSION;
-  else if(Entries)
+  else if (GAddressRegister == VLEDADDR)
+    Response = GLEDWord;
+  else if (GAddressRegister == VEVENTADDR)
   {
-    Success = GetEventFromQ(Response);
-    Response |= ((Entries & 0xF)<<12);
+    if(Entries)                                 // if there are queue entries
+    {
+      Success = GetEventFromQ(&Response);
+      Response |= ((Entries & 0xF)<<12);
+    }
   }
-  Wire.write(Response & 0xFF);            // respond with message of 2 bytes, low byter 1st
+  Wire.write(Response & 0xFF);            // respond with message of 2 bytes, low byte 1st
   Wire.write((Response >> 8) & 0xFF);     // respond with message of 2 bytes high byte
 //
 // clear interrupt out if last one read
@@ -182,7 +197,8 @@ void requestEvent()
 
 
 //
-// interrupt handler for for I2C slave write operation
+// interrupt handler for for I2C data sent to Arduino
+// this could be a 3 byte write, or a 1 byte address for a read
 // simply store new command word for processing in normal sequence
 // GSendVersion set if command is to send out versino information
 // GShiftOverride set if all 11 LEDs should be set by the software
@@ -192,16 +208,28 @@ void receiveEvent(int Count)
 {
   byte Data;
   byte Cntr = 0;
-  while(Wire.available()) // loop through all but the last
+  
+  Serial.print("receiveEvent: bytes=");
+  Serial.print(Count);
+  Serial.print(": ");
+  GAddressRegister = Wire.read(); // receive address register
+
+  if(Count > 1)
   {
-    Data = Wire.read(); // receive byte as a character
-    if(Cntr++ == 0)
-      CommandWord = Data;
-    else
-      CommandWord = (CommandWord & 0xFF) | (Data << 8);
+    while(Wire.available()) // loop through all but the last
+    {
+      Data = Wire.read(); // receive byte as a character
+      Serial.print(Data);
+      Serial.print(" ");
+      if(Cntr++ == 0)
+        CommandWord = Data;
+      else
+        CommandWord = (CommandWord & 0xFF) | (Data << 8);
+    }
+    Serial.println();
+    if(GAddressRegister == VLEDADDR)
+      GLEDWord = CommandWord;
   }
-  GSendVersion = (bool)((CommandWord >> 14)&1);
-  GShiftOverride = (bool)((CommandWord >> 15)&1);
 }
 
 //
@@ -225,16 +253,16 @@ void EventQueueTick(void)
   byte LED;
   bool State;
   unsigned int Word;
-  byte LEDCount = VMAXINDICATORS;
+  byte LEDCount = VMAXINDICATORS-2;
 
   if(LEDTestComplete)
   {
 // if override bit not set, we don't set the two highest LED bits
 //(these are controlled locally by the "shift" buttons)
 //
-    if(!GShiftOverride)
-      LEDCount -= 2;
-    Word = CommandWord;                       // get LED settings
+    if(!(GLEDWord & 0x8000))                  // if override set
+      LEDCount += 2;
+    Word = GLEDWord;                       // get LED settings
     for(LED=0; LED < LEDCount; LED++)
     {
       State = (bool)(Word &1);                // get LED state
