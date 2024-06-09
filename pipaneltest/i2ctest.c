@@ -37,7 +37,15 @@ char* pi_i2c_device = "/dev/i2c-1";
 unsigned int G2V2Arduino = 0x15;                    // i2c slave address of Arduino on G2V2
 int i2c_fd;                                  // file reference
 bool FoundG2V2Panel = false;
+int Version;
 
+
+#define VNOEVENT 0
+#define VVFOSTEP 1
+#define VENCODERSTEP 2
+#define VPBPRESS 3
+#define VPBLONGRESS 4
+#define VPBRELEASE 5
 
 //
 // function to test data connection to front panel
@@ -45,14 +53,70 @@ bool FoundG2V2Panel = false;
 void TestG2V2Panel(void)
 {
     uint16_t Retval;
+    uint16_t Version;
+    uint8_t EventCount;
+    uint8_t EventID;
+    uint8_t EventData;
+    int8_t Steps;
+//
+// read producr ID and version register
+//
+    Retval = i2c_read_word_data(0x0C);                      // read ID register
+    Version = (Retval >> 8) &0xFF;
+    printf("prduct ID=%d", Version);
+    Version = Retval & 0xFF;
+    printf("; S/W verson = %d\n", Version);
 
-    Retval = i2c_read_word_data(0x0C);
-    printf("ID & version=%04x\n", Retval);
+//
+// now loop reading the Event register
+//
+    while(1)
+    {
+        Retval = i2c_read_word_data(0x0B);                      // read event register
+        EventID = (Retval >> 8) & 0x0F;
+        EventCount = (Retval >> 12) & 0x0F;
+        EventData = Retval & 0xFF;
 
-    Retval = i2c_write_word_data(0x0A, 0x0102);
+        if(EventCount != 0)
+            printf("Remaining Events Count = %d\n", EventCount);
 
-    Retval = i2c_read_word_data(0x0A);
-    printf("LED read=%04x\n", Retval);
+        switch(EventID)
+        {
+            case VNOEVENT:
+            default:
+                break;
+
+
+            case VVFOSTEP:
+                Steps = (int8_t)EventData;
+                printf("VFO encoder step, steps = %d\n", Steps);
+                break;
+
+
+            case VENCODERSTEP:
+                Steps = (int8_t)(EventData & 0xF);
+                if (Steps >= 8)
+                    Steps = -(16-Steps);
+                printf("normal encoder step, encoder = %d, steps = %d\n", ((EventData>>4) + 1), Steps);
+                break;
+
+
+            case VPBPRESS:
+                printf("Pushbutton press, scan code = %d\n", EventData);
+                break;
+
+
+            case VPBLONGRESS:
+                printf("Pushbutton longpress, scan code = %d\n", EventData);
+                break;
+
+
+            case VPBRELEASE:
+                printf("Pushbutton release, scan code = %d\n", EventData);
+                break;
+        }
+        usleep(100000);
+    }
 }
 
 

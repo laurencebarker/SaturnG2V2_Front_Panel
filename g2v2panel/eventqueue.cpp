@@ -32,7 +32,7 @@ byte ReadPtr;                                 // entry number to read from
 unsigned int EventQ[VQUEUESIZE];              // declare event queue
 unsigned int CommandWord;                     // new 2 byte command word from pi
 bool GSendVersion;                            // true if commanded to send ot version not data.
-unsigned int GLEDWord;                        // LED states; top bit is PBX
+unsigned int GLEDWord = 0;                    // LED states; top bit is PBX
 unsigned int GAddressRegister;                // I2C slave address requested
 
 //
@@ -113,7 +113,7 @@ void AddEvent2Q(EEventType Event, byte EventData)
   switch(Event)
   {
     case eNoEvent:                           // no event present
-      Serial.println("BUG: event processed but no event present");
+//      Serial.println("BUG: event processed but no event present");
       break;
 
     case eEvVFOStep:                           // VFO encoder steps
@@ -122,35 +122,35 @@ void AddEvent2Q(EEventType Event, byte EventData)
       Steps |= ((Steps&0b00001000)<<2);        // sign extend to bit 5
       Steps |= ((Steps&0b00001000)<<3);        // sign extend to bit 6
       Steps |= ((Steps&0b00001000)<<4);        // sign extend to bit 7
-      Serial.print("VFO encoder: steps = ");
-      Serial.println(Steps);
+//      Serial.print("VFO encoder: steps = ");
+//      Serial.println(Steps);
       break;
       
     case eEvEncoderStep:                       // ordinary encoder steps
-      Serial.print("dual encoder: number = ");
-      Serial.print(EventData >> 4);
-      Serial.print(" steps = ");
+//      Serial.print("dual encoder: number = ");
+//      Serial.print(EventData >> 4);
+//      Serial.print(" steps = ");
       Steps = (signed int)(EventData & 0xF);
       Steps |= ((Steps&0b00001000)<<1);        // sign extend to bit 4
       Steps |= ((Steps&0b00001000)<<2);        // sign extend to bit 5
       Steps |= ((Steps&0b00001000)<<3);        // sign extend to bit 6
       Steps |= ((Steps&0b00001000)<<4);        // sign extend to bit 7
-      Serial.println(Steps);
+//      Serial.println(Steps);
       break;
       
     case eEvButtonPress:                       // pushbutton press
-      Serial.print("button press: button code = ");
-      Serial.println(EventData);
+//      Serial.print("button press: button code = ");
+//      Serial.println(EventData);
       break;
       
     case eEvButtonLongpress:                   // pushbutton long press
-      Serial.print("button long press: button code = ");
-      Serial.println(EventData);
+//      Serial.print("button long press: button code = ");
+//      Serial.println(EventData);
       break;
       
     case eEvButtonRelease:                     // pushbutton release
-      Serial.print("button release: button code = ");
-      Serial.println(EventData);
+//      Serial.print("button release: button code = ");
+//      Serial.println(EventData);
       break;
 
   }
@@ -171,7 +171,7 @@ void requestEvent()
   bool Success;
   unsigned int Entries;
   unsigned int Response = 0;                  // response code to I2C
-  Serial.println("requestEvent");
+//  Serial.println("requestEvent");
 
   Entries = (unsigned int)GetQEntries();
   if(GAddressRegister == VIDADDR)
@@ -209,9 +209,9 @@ void receiveEvent(int Count)
   byte Data;
   byte Cntr = 0;
   
-  Serial.print("receiveEvent: bytes=");
-  Serial.print(Count);
-  Serial.print(": ");
+//  Serial.print("receiveEvent: bytes=");
+//  Serial.print(Count);
+//  Serial.print(": ");
   GAddressRegister = Wire.read(); // receive address register
 
   if(Count > 1)
@@ -219,14 +219,14 @@ void receiveEvent(int Count)
     while(Wire.available()) // loop through all but the last
     {
       Data = Wire.read(); // receive byte as a character
-      Serial.print(Data);
-      Serial.print(" ");
+//      Serial.print(Data);
+//      Serial.print(" ");
       if(Cntr++ == 0)
         CommandWord = Data;
       else
         CommandWord = (CommandWord & 0xFF) | (Data << 8);
     }
-    Serial.println();
+//    Serial.println();
     if(GAddressRegister == VLEDADDR)
       GLEDWord = CommandWord;
   }
@@ -260,7 +260,7 @@ void EventQueueTick(void)
 // if override bit not set, we don't set the two highest LED bits
 //(these are controlled locally by the "shift" buttons)
 //
-    if(!(GLEDWord & 0x8000))                  // if override set
+    if(GLEDWord & 0x8000)                  // if override set
       LEDCount += 2;
     Word = GLEDWord;                       // get LED settings
     for(LED=0; LED < LEDCount; LED++)
