@@ -31,13 +31,17 @@
 #include <pthread.h>
 #include <linux/i2c-dev.h>
 #include "i2cdriver.h"
+#include "gpiod.h"
 
 
 char* pi_i2c_device = "/dev/i2c-1";
+char* gpiod_device = "/dev/gpiochip0";
 unsigned int G2V2Arduino = 0x15;                    // i2c slave address of Arduino on G2V2
-int i2c_fd;                                  // file reference
+int i2c_fd;                                         // file reference
 bool FoundG2V2Panel = false;
 int Version;
+struct gpiod_chip *chip;                            // gpiod for gpio access
+struct gpiod_line *intline;
 
 
 #define VNOEVENT 0
@@ -58,8 +62,11 @@ void TestG2V2Panel(void)
     uint8_t EventID;
     uint8_t EventData;
     int8_t Steps;
+    int intlinestate;
+    int intafter;
+
 //
-// read producr ID and version register
+// read product ID and version register
 //
     Retval = i2c_read_word_data(0x0C);                      // read ID register
     Version = (Retval >> 8) &0xFF;
@@ -72,6 +79,8 @@ void TestG2V2Panel(void)
 //
     while(1)
     {
+        intlinestate = gpiod_line_get_value(intline);
+
         Retval = i2c_read_word_data(0x0B);                      // read event register
         EventID = (Retval >> 8) & 0x0F;
         EventCount = (Retval >> 12) & 0x0F;
@@ -89,7 +98,7 @@ void TestG2V2Panel(void)
 
             case VVFOSTEP:
                 Steps = (int8_t)EventData;
-                printf("VFO encoder step, steps = %d\n", Steps);
+                printf("int=%d VFO encoder step, steps = %d\n", intlinestate, Steps);
                 break;
 
 
@@ -97,27 +106,31 @@ void TestG2V2Panel(void)
                 Steps = (int8_t)(EventData & 0xF);
                 if (Steps >= 8)
                     Steps = -(16-Steps);
-                printf("normal encoder step, encoder = %d, steps = %d\n", ((EventData>>4) + 1), Steps);
+                printf("int=%d normal encoder step, encoder = %d, steps = %d\n", intlinestate, ((EventData>>4) + 1), Steps);
                 break;
 
 
             case VPBPRESS:
-                printf("Pushbutton press, scan code = %d\n", EventData);
+                printf("int=%d Pushbutton press, scan code = %d\n", intlinestate, EventData);
+                intafter = gpiod_line_get_value(intline);
+                printf("interrupt after test= %d\n", intafter);
                 break;
 
 
             case VPBLONGRESS:
-                printf("Pushbutton longpress, scan code = %d\n", EventData);
+                printf("int=%d Pushbutton longpress, scan code = %d\n", intlinestate, EventData);
                 break;
 
 
             case VPBRELEASE:
-                printf("Pushbutton release, scan code = %d\n", EventData);
+                printf("int=%d Pushbutton release, scan code = %d\n", intlinestate, EventData);
                 break;
         }
         usleep(100000);
     }
 }
+
+
 
 
 
@@ -127,6 +140,25 @@ void TestG2V2Panel(void)
 //
 void main(void)
 {
+    int intlinestate;
+    int ret;
+
+    chip = gpiod_chip_open(gpiod_device);
+    if(!chip)
+        perror("gpiod_chip_open");
+
+    intline = gpiod_chip_get_line(chip, 4);
+    if(!intline)
+        perror("gpiod_chip_get_line");
+    
+    ret = gpiod_line_request_input(intline, "Consumer");
+    if(ret < 0)
+        perror("gpiod_line_request_input");
+
+    intlinestate = gpiod_line_get_value(intline);
+    printf("int line = %d\n", intlinestate);
+
+
     i2c_fd=open(pi_i2c_device, O_RDWR);
     if(i2c_fd < 0)
         printf("failed to open i2c device\n");
