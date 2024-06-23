@@ -70,7 +70,7 @@ void TestG2V2Panel(void)
 //
     Retval = i2c_read_word_data(0x0C);                      // read ID register
     Version = (Retval >> 8) &0xFF;
-    printf("prduct ID=%d", Version);
+    printf("product ID=%d", Version);
     Version = Retval & 0xFF;
     printf("; S/W verson = %d\n", Version);
 
@@ -92,13 +92,16 @@ void TestG2V2Panel(void)
         switch(EventID)
         {
             case VNOEVENT:
+                break;
+                
             default:
+                printf("int=%d, spurious event code = %d; ", intlinestate, EventID);
                 break;
 
 
             case VVFOSTEP:
                 Steps = (int8_t)EventData;
-                printf("int=%d VFO encoder step, steps = %d\n", intlinestate, Steps);
+                printf("int=%d VFO encoder step, steps = %d; ", intlinestate, Steps);
                 break;
 
 
@@ -106,25 +109,28 @@ void TestG2V2Panel(void)
                 Steps = (int8_t)(EventData & 0xF);
                 if (Steps >= 8)
                     Steps = -(16-Steps);
-                printf("int=%d normal encoder step, encoder = %d, steps = %d\n", intlinestate, ((EventData>>4) + 1), Steps);
+                printf("int=%d normal encoder step, encoder = %d, steps = %d; ", intlinestate, ((EventData>>4) + 1), Steps);
                 break;
 
 
             case VPBPRESS:
-                printf("int=%d Pushbutton press, scan code = %d\n", intlinestate, EventData);
-                intafter = gpiod_line_get_value(intline);
-                printf("interrupt after test= %d\n", intafter);
+                printf("int=%d Pushbutton press, scan code = %d; ", intlinestate, EventData);
                 break;
 
 
             case VPBLONGRESS:
-                printf("int=%d Pushbutton longpress, scan code = %d\n", intlinestate, EventData);
+                printf("int=%d Pushbutton longpress, scan code = %d; ", intlinestate, EventData);
                 break;
 
 
             case VPBRELEASE:
-                printf("int=%d Pushbutton release, scan code = %d\n", intlinestate, EventData);
+                printf("int=%d Pushbutton release, scan code = %d; ", intlinestate, EventData);
                 break;
+        }
+        if(EventID != VNOEVENT)
+        {
+            intlinestate = gpiod_line_get_value(intline);
+            printf("int after =%d\n", intlinestate);
         }
         usleep(100000);
     }

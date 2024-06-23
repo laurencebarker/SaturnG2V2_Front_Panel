@@ -185,13 +185,13 @@ void requestEvent()
       Success = GetEventFromQ(&Response);
       Response |= ((Entries & 0xF)<<12);
     }
-//    Serial.print(Response);
-//    Serial.print("; ");
-//    if(eventcount++ > 60)
-//    {
-//      eventcount=0;
-//      Serial.println();
-//    }
+    Serial.print(Response);
+    Serial.print("; ");
+    if(eventcount++ > 60)
+    {
+      eventcount=0;
+      Serial.println();
+    }
   }
   Wire.write(Response & 0xFF);            // respond with message of 2 bytes, low byte 1st
   Wire.write((Response >> 8) & 0xFF);     // respond with message of 2 bytes high byte
