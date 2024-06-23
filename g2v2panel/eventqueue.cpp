@@ -103,9 +103,9 @@ void AddEvent2Q(EEventType Event, byte EventData)
       WritePtr = 0;
     interrupts();
 //
-// set interrupt out, by enabling pin as output (data pre-set to zero)
+// set interrupt out, by driving pin to 0 
 //
-  pinMode(VPINPIINTERRUPT, OUTPUT);                     // interrupt output
+  digitalWrite(VPINPIINTERRUPT, LOW);                   // assert interrupt output
   }
 
   signed char Steps;
@@ -161,7 +161,7 @@ void AddEvent2Q(EEventType Event, byte EventData)
 // Slave write: 3 byte to Arduino (receiveEvent)
 // Slave read: 1 byte to Arduino (receivEvent) followed by 2 bytes from Arduino (requestEvent)
 //
-
+int eventcount = 0;
 //
 // interrupt handler when data requested from I2C slave read
 // response is 16 bits: either an event queue entry + length; or 0
@@ -185,6 +185,13 @@ void requestEvent()
       Success = GetEventFromQ(&Response);
       Response |= ((Entries & 0xF)<<12);
     }
+//    Serial.print(Response);
+//    Serial.print("; ");
+//    if(eventcount++ > 60)
+//    {
+//      eventcount=0;
+//      Serial.println();
+//    }
   }
   Wire.write(Response & 0xFF);            // respond with message of 2 bytes, low byte 1st
   Wire.write((Response >> 8) & 0xFF);     // respond with message of 2 bytes high byte
@@ -192,7 +199,7 @@ void requestEvent()
 // clear interrupt out if last one read
 //
   if(Entries <= 1)
-    pinMode(VPINPIINTERRUPT, INPUT);                     // interrupt output deasserted
+  digitalWrite(VPINPIINTERRUPT, HIGH);                   // clear interrupt output
 }
 
 

@@ -173,11 +173,10 @@ void ConfigIOPins(void)
   digitalWrite(VPINBLINKLED, LOW);                      // debug LED output
 
 //
-// finally setup interrupt output: set low (to disable pullup)
-// but only set to be an output if interrupt asserted.
+// finally setup interrupt output: active low output
 //
-  digitalWrite(VPINPIINTERRUPT, LOW);                   // interrupt output
-  pinMode(VPINPIINTERRUPT, INPUT);                     // interrupt output
+  digitalWrite(VPINPIINTERRUPT, HIGH);                   // interrupt output
+  pinMode(VPINPIINTERRUPT, OUTPUT);                     // interrupt output
 
 }
 

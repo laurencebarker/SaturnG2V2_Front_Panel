@@ -95,8 +95,8 @@ void ClearLEDs(void)
 
 
 byte LEDTestOrder[] = {0, 1, 2, 4, 3, 8, 7, 6, 5, 9, 10};
-
-#define VTESTTIMEPERLED 250       // 500ms
+bool GLEDsExtinguishing;
+#define VTESTTIMEPERLED 50       // 100ms
 
 //
 // LEDSelfTest
@@ -110,7 +110,13 @@ void LEDSelfTest(void)
   {
     if(LEDLitTime == 0)                 // if timed out - move on to next LED
     {
-      if(TestLED == VMAXINDICATORS)     // if we have lit the last one
+      if((TestLED == VMAXINDICATORS) && (GLEDsExtinguishing==false))     // if we have lit the last one
+      {
+        LEDLitTime = VTESTTIMEPERLED;
+        GLEDsExtinguishing = true;
+        TestLED=0;
+      }
+      if((TestLED == VMAXINDICATORS) && (GLEDsExtinguishing))           // if we have turned off the last one
       {
         LEDTestComplete = true;
         ClearLEDs();
@@ -118,10 +124,11 @@ void LEDSelfTest(void)
       else                              // increment LED & re-start count
       {
         LEDLitTime = VTESTTIMEPERLED;
-        if (TestLED > 0)                // turn off previous LED
-          SetLED(LEDTestOrder[TestLED-1], false);
+        if(GLEDsExtinguishing == true)
+          SetLED(LEDTestOrder[TestLED], false);
+        else
+          SetLED(LEDTestOrder[TestLED], true);
         TestLED++;                      // and light new one
-        SetLED(LEDTestOrder[TestLED-1], true);
       }
     }
     else
