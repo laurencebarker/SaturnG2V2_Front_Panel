@@ -21,6 +21,7 @@
 #define __i2cdriver_h
 
 #include <stdint.h>
+#include <stdbool.h>
 
 
 //
@@ -36,12 +37,12 @@ int i2c_write_word_data(uint8_t reg, uint16_t data);
 //
 // 8 bit read
 //
-uint8_t i2c_read_byte_data(uint8_t reg); 
+uint8_t i2c_read_byte_data(uint8_t reg, bool *error); 
 
 //
 // 16 bit read 
 //
-uint16_t i2c_read_word_data(uint8_t reg); 
+uint16_t i2c_read_word_data(uint8_t reg, bool *error); 
 
 
 

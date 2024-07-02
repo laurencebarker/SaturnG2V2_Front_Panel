@@ -35,8 +35,10 @@ bool GSendVersion;                            // true if commanded to send ot ve
 unsigned int GLEDWord = 0;                    // LED states; top bit is PBX
 unsigned int GAddressRegister;                // I2C slave address requested
 
+
 //
 // function to get the number of entries in the queue
+// dont's call from inside an interrupt handler!
 //
 byte GetQEntries()
 {
@@ -165,6 +167,7 @@ int eventcount = 0;
 //
 // interrupt handler when data requested from I2C slave read
 // response is 16 bits: either an event queue entry + length; or 0
+// note the code to access the queue is coded directly in here, to avoid issues with turning back on interrupts by accident. 
 //
 void requestEvent() 
 {
@@ -173,25 +176,32 @@ void requestEvent()
   unsigned int Response = 0;                  // response code to I2C
 //  Serial.println("requestEvent");
 
-  Entries = (unsigned int)GetQEntries();
   if(GAddressRegister == VIDADDR)
     Response = (PRODUCTID << 8) | SWVERSION;
   else if (GAddressRegister == VLEDADDR)
     Response = GLEDWord;
   else if (GAddressRegister == VEVENTADDR)
   {
+    // find count of entries available in the queue
+    Entries = WritePtr - ReadPtr;               // if not wrapped
+    if(Entries < 0)                             //
+      Entries += VQUEUESIZE;
+
     if(Entries)                                 // if there are queue entries
     {
-      Success = GetEventFromQ(&Response);
+// read a queue location, then update read pointer
+      Response = EventQ[ReadPtr];
+      if(++ReadPtr >= VQUEUESIZE)
+        ReadPtr = 0;
       Response |= ((Entries & 0xF)<<12);
     }
-    Serial.print(Response);
-    Serial.print("; ");
-    if(eventcount++ > 60)
-    {
-      eventcount=0;
-      Serial.println();
-    }
+//    Serial.print(Response);
+//    Serial.print("; ");
+//    if(eventcount++ > 60)
+//    {
+//      eventcount=0;
+//      Serial.println();
+//    }
   }
   Wire.write(Response & 0xFF);            // respond with message of 2 bytes, low byte 1st
   Wire.write((Response >> 8) & 0xFF);     // respond with message of 2 bytes high byte
