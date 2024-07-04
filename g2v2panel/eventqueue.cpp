@@ -107,9 +107,9 @@ void AddEvent2Q(EEventType Event, byte EventData)
 //
 // set interrupt out, by driving pin to 0 
 //
-  digitalWrite(VPINPIINTERRUPT, LOW);                   // assert interrupt output
+    digitalWrite(VPINPIINTERRUPT, LOW);                   // assert interrupt output
   }
-
+  Serial.println(Entry, HEX);
   signed char Steps;
   // debug
   switch(Event)
@@ -172,12 +172,15 @@ int eventcount = 0;
 void requestEvent() 
 {
   bool Success;
-  unsigned int Entries;
+  signed int Entries;
   unsigned int Response = 0;                  // response code to I2C
 //  Serial.println("requestEvent");
 
   if(GAddressRegister == VIDADDR)
-    Response = (PRODUCTID << 8) | SWVERSION;
+  {
+     Response = (PRODUCTID << 8) | SWVERSION;
+     digitalWrite(VPINPIINTERRUPT, HIGH);                   // clear interrupt output
+  }
   else if (GAddressRegister == VLEDADDR)
     Response = GLEDWord;
   else if (GAddressRegister == VEVENTADDR)

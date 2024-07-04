@@ -56,15 +56,16 @@ struct gpiod_line *intline;
 //
 void TestG2V2Panel(void)
 {
+    int IntState;
     uint16_t Retval;
     uint16_t Version;
     uint8_t EventCount;
     uint8_t EventID;
     uint8_t EventData;
     int8_t Steps;
-    int intlinestate;
-    int intafter;
     bool Error;
+    struct timespec ts = {1, 0};                                    // timeot time = 1s
+    struct gpiod_line_event intevent;
 
 //
 // read product ID and version register
@@ -79,67 +80,70 @@ void TestG2V2Panel(void)
     }
 
 //
-// now loop reading the Event register
+// now loop waiting for interrupt, then reading the i2c Event register
+// need to read all i2c data, until it reports no more events
 //
     while(1)
     {
-        intlinestate = gpiod_line_get_value(intline);
-
-        Retval = i2c_read_word_data(0x0B, &Error);                      // read event register
-        if(!Error)
+        Retval = gpiod_line_event_wait(intline, &ts);                   // wait for interrupt from Arduino
+        if(Retval > 0)                                                  // if event occurred ie not timeout
         {
-            EventID = (Retval >> 8) & 0x0F;
-            EventCount = (Retval >> 12) & 0x0F;
-            EventData = Retval & 0xFF;
-
-            if(EventCount != 0)
-                printf("Remaining Events Count = %d\n", EventCount);
-
-            switch(EventID)
+            Retval = gpiod_line_event_read(intline, &intevent);         // UNDOCUMENTED: read event to cancel it
+            //
+            // the interrupt line has reached zero. Read and process one i2c event
+            // if there is more than one event present, the interrupt line will stay low
+            //
+            while(1)
             {
-                case VNOEVENT:
-                    break;
-                    
-                default:
-                    printf("int=%d, spurious event code = %d; ", intlinestate, EventID);
-                    break;
+                Retval = i2c_read_word_data(0x0B, &Error);                  // read Arduino i2c event register
+                if(!Error)
+                {
+                    printf("data=%04x; ", Retval);
+                    EventID = (Retval >> 8) & 0x0F;
+                    EventCount = (Retval >> 12) & 0x0F;
+                    EventData = Retval & 0xFF;
 
+                    switch(EventID)
+                    {
+                        case VNOEVENT:
+                            break;
+                                
+                        case VVFOSTEP:
+                            Steps = (int8_t)EventData;
+                            printf("VFO encoder step, steps = %d; ", Steps);
+                            break;
 
-                case VVFOSTEP:
-                    Steps = (int8_t)EventData;
-                    printf("int=%d VFO encoder step, steps = %d; ", intlinestate, Steps);
-                    break;
+                        case VENCODERSTEP:
+                            Steps = (int8_t)(EventData & 0xF);
+                            if (Steps >= 8)
+                                Steps = -(16-Steps);
+                            printf("normal encoder step, encoder = %d, steps = %d; ", ((EventData>>4) + 1), Steps);
+                            break;
 
+                        case VPBPRESS:
+                            printf("Pushbutton press, scan code = %d; ", EventData);
+                            break;
 
-                case VENCODERSTEP:
-                    Steps = (int8_t)(EventData & 0xF);
-                    if (Steps >= 8)
-                        Steps = -(16-Steps);
-                    printf("int=%d normal encoder step, encoder = %d, steps = %d; ", intlinestate, ((EventData>>4) + 1), Steps);
-                    break;
+                        case VPBLONGRESS:
+                            printf("Pushbutton longpress, scan code = %d; ", EventData);
+                            break;
 
+                        case VPBRELEASE:
+                            printf("Pushbutton release, scan code = %d; ", EventData);
+                            break;
 
-                case VPBPRESS:
-                    printf("int=%d Pushbutton press, scan code = %d; ", intlinestate, EventData);
-                    break;
+                        default:
+                            printf("spurious event code = %d; ", EventID);
+                            break;
 
-
-                case VPBLONGRESS:
-                    printf("int=%d Pushbutton longpress, scan code = %d; ", intlinestate, EventData);
-                    break;
-
-
-                case VPBRELEASE:
-                    printf("int=%d Pushbutton release, scan code = %d; ", intlinestate, EventData);
-                    break;
+                    }
+                    printf(" Remaining Events Count = %d\n", EventCount);
+                    if(EventCount <= 1)
+                        break;
+                }
+                usleep(1000);                                                   // small 1ms delay between i2c reads
             }
-            if(EventID != VNOEVENT)
-            {
-                intlinestate = gpiod_line_get_value(intline);
-                printf("int after =%d\n", intlinestate);
-            }
-        }    
-        usleep(100000);
+        }
     }
 }
 
@@ -153,9 +157,6 @@ void TestG2V2Panel(void)
 //
 void main(void)
 {
-    int intlinestate;
-    int ret;
-
     chip = gpiod_chip_open(gpiod_device);
     if(!chip)
         perror("gpiod_chip_open");
@@ -163,14 +164,11 @@ void main(void)
     intline = gpiod_chip_get_line(chip, 4);
     if(!intline)
         perror("gpiod_chip_get_line");
-    
-    ret = gpiod_line_request_input(intline, "Consumer");
-    if(ret < 0)
-        perror("gpiod_line_request_input");
 
-    intlinestate = gpiod_line_get_value(intline);
-    printf("int line = %d\n", intlinestate);
-
+//
+// setup interrupt line as an input, with falling edge events
+//    
+    gpiod_line_request_falling_edge_events(intline, "interrupt");
 
     i2c_fd=open(pi_i2c_device, O_RDWR);
     if(i2c_fd < 0)
