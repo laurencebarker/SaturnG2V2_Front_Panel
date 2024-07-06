@@ -207,9 +207,9 @@ void EncoderTick(void)
     {
       EncoderList[Cntr].LastPosition += Movement;
       if(GEncoderShiftActive && (Cntr >= 8))
-        EventData = (Movement & 0x0F) | ((Cntr+2) << 4);
+        EventData = (Movement & 0x07) | ((Cntr+2) << 3);
       else
-        EventData = (Movement & 0x0F) | (Cntr << 4);
+        EventData = (Movement & 0x07) | (Cntr << 3);
       AddEvent2Q(eEvEncoderStep, EventData);
     }
   }
@@ -217,6 +217,8 @@ void EncoderTick(void)
 //
 //read the VFO encoder; divide by N to get the desired step count
 // we only process it every 10 ticks (20ms) to allow several ticks to build up to minimise CAT command rate
+// at 4 turns per second, get 2000 steps/s ie ~40 steps per 20ms, which is enough
+// clip to 7 signed bits
 //
   if (--GVFOCycleCount == 0)
   {
@@ -225,6 +227,10 @@ void EncoderTick(void)
     signed char ct = ReadOpticalEncoder();
     if (ct != 0)
     {
+      if(ct > 63)
+        ct=63;
+      else if(ct<-63)
+        ct=-63;
       EventData = (byte)ct;
       AddEvent2Q(eEvVFOStep, EventData);
     }

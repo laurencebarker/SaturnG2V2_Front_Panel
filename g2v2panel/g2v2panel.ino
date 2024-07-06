@@ -175,7 +175,7 @@ void ConfigIOPins(void)
 //
 // finally setup interrupt output: active low output
 //
-  digitalWrite(VPINPIINTERRUPT, HIGH);                   // interrupt output
+  digitalWrite(VPINPIINTERRUPT, HIGH);                  // interrupt output
   pinMode(VPINPIINTERRUPT, OUTPUT);                     // interrupt output
 
 }
