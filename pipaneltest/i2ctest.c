@@ -42,6 +42,8 @@ bool FoundG2V2Panel = false;
 int Version;
 struct gpiod_chip *chip;                            // gpiod for gpio access
 struct gpiod_line *intline;
+bool ExitRequested = false;
+pthread_t CheckForKBText;                           // thread looks for types "exit" command or LED commands
 
 
 #define VNOEVENT 0
@@ -56,7 +58,6 @@ struct gpiod_line *intline;
 //
 void TestG2V2Panel(void)
 {
-    int IntState;
     uint16_t Retval;
     uint16_t Version;
     uint8_t EventCount;
@@ -68,9 +69,9 @@ void TestG2V2Panel(void)
     struct gpiod_line_event intevent;
 
 //
-// read product ID and version register
+// then read product ID and version register
 //
-    Retval = i2c_read_word_data(0x0C, &Error);                      // read ID register
+    Retval = i2c_read_word_data(0x0C, &Error);                  // read ID register (also clears interrupt)
     if(!Error)
     {
         Version = (Retval >> 8) &0xFF;
@@ -83,7 +84,7 @@ void TestG2V2Panel(void)
 // now loop waiting for interrupt, then reading the i2c Event register
 // need to read all i2c data, until it reports no more events
 //
-    while(1)
+    while(!ExitRequested)
     {
         Retval = gpiod_line_event_wait(intline, &ts);                   // wait for interrupt from Arduino
         if(Retval > 0)                                                  // if event occurred ie not timeout
@@ -101,7 +102,7 @@ void TestG2V2Panel(void)
                     printf("data=%04x; ", Retval);
                     EventID = (Retval >> 8) & 0x0F;
                     EventCount = (Retval >> 12) & 0x0F;
-                    EventData = Retval & 0xFF;
+                    EventData = Retval & 0x7F;
 
                     switch(EventID)
                     {
@@ -109,15 +110,16 @@ void TestG2V2Panel(void)
                             break;
                                 
                         case VVFOSTEP:
-                            Steps = (int8_t)EventData;
+                            Steps = (int8_t)(EventData);
+                            Steps |= ((EventData & 0x40) << 1);                         // sign extend
                             printf("VFO encoder step, steps = %d; ", Steps);
                             break;
 
                         case VENCODERSTEP:
-                            Steps = (int8_t)(EventData & 0xF);
-                            if (Steps >= 8)
-                                Steps = -(16-Steps);
-                            printf("normal encoder step, encoder = %d, steps = %d; ", ((EventData>>4) + 1), Steps);
+                            Steps = (int8_t)(EventData & 0x7);
+                            if (Steps >= 4)
+                                Steps = -(8-Steps);
+                            printf("normal encoder step, encoder = %d, steps = %d; ", ((EventData>>3) + 1), Steps);
                             break;
 
                         case VPBPRESS:
@@ -150,6 +152,47 @@ void TestG2V2Panel(void)
 
 
 
+//
+// this runs as its own thread to monitor command line activity. A string "exit" exits the application. 
+// thread initiated at the start.
+//
+void* ReadKB(void *arg)
+{
+    char InputString[128] = "";
+    char ch;
+    char *Xpos;                                                     // psiton of "x" in input string
+    uint32_t LED;
+    uint16_t LEDWord = 0;
+
+    printf("spinning up Check For Exit thread\n");
+    while (1)
+    {
+        usleep(10000);
+        fgets(InputString, 128, stdin);
+        Xpos = strchr(InputString, 'x');                            // see if it contains an x
+        if (Xpos != NULL)
+        {
+            ExitRequested = true;
+            break;
+        }
+        else
+        {
+            ch = InputString[0];
+            LED = atoi(InputString+1);
+//            printf("LED number=%d\n", LED);
+            if((LED >= 1) && (LED <= 9))
+            {
+                if(ch == '+')
+                    LEDWord |= (1 << --LED);                                // set a bit position
+                if(ch == '-')
+                    LEDWord &= ~(1 << --LED);                               // clear a bit position
+                i2c_write_word_data(0x0A, LEDWord);
+            }
+        }
+    }
+}
+
+
 
 //
 // function to initialise a connection to the front panel; call if selected as a command line option
@@ -157,6 +200,23 @@ void TestG2V2Panel(void)
 //
 void main(void)
 {
+
+//
+// start up thread for exit command checking
+//
+    if(pthread_create(&CheckForKBText, NULL, ReadKB, NULL) < 0)
+    {
+        perror("pthread_create check for exit");
+        return EXIT_FAILURE;
+    }
+    pthread_detach(CheckForKBText);
+
+    printf("i2c tester for G2 V2 front panel\n");
+    printf("type exit<enter> to exit\n");
+    printf("type +7<enter> to turn on LED 7\n");
+    printf("type -7<enter> off turn on LED 7\n");
+    printf("LED numbers 1-9 can be tested this way\n\n");
+
     chip = gpiod_chip_open(gpiod_device);
     if(!chip)
         perror("gpiod_chip_open");
