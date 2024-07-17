@@ -16,12 +16,12 @@
 //
 // encoder type: for ball bearing encoder, the parameter should be defined
 //
-#define HIRESOPTICALENCODER 1
+//#define HIRESOPTICALENCODER 1
 
 //
 // hardware and software version: send back to console on request
 //
-#define SWVERSION 4
+#define SWVERSION 6
 #define HWVERSION 1
 
 //

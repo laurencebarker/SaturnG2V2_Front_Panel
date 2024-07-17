@@ -22,6 +22,7 @@
 #define VLEDADDR 0x0A                         // LED register address
 #define VEVENTADDR 0x0B                       // event register address
 #define VIDADDR 0x0C                          // ID/version register address
+#define VHWADDR 0x0D                          // HW version register
 
 //
 // the event queue is a simple circular buffer implemented using an array.
@@ -181,7 +182,12 @@ void requestEvent()
      Response = (PRODUCTID << 8) | SWVERSION;
      digitalWrite(VPINPIINTERRUPT, HIGH);                   // clear interrupt output
   }
-  else if (GAddressRegister == VLEDADDR)
+  else if(GAddressRegister == VHWADDR)
+  {
+     Response = HWVERSION;
+     digitalWrite(VPINPIINTERRUPT, HIGH);                   // clear interrupt output
+  }
+    else if (GAddressRegister == VLEDADDR)
     Response = GLEDWord;
   else if (GAddressRegister == VEVENTADDR)
   {

@@ -77,7 +77,13 @@ void TestG2V2Panel(void)
         Version = (Retval >> 8) &0xFF;
         printf("product ID=%d", Version);
         Version = Retval & 0xFF;
-        printf("; S/W verson = %d\n", Version);
+        printf("; S/W verson = %d", Version);
+    }
+    Retval = i2c_read_word_data(0x0D, &Error);                  // read HWVerson register 
+    if(!Error)
+    {
+        Version = Retval & 0xFF;
+        printf("; H/W verson = %d\n", Version);
     }
 
 //
