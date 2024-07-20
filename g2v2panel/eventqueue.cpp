@@ -110,53 +110,6 @@ void AddEvent2Q(EEventType Event, byte EventData)
 //
     digitalWrite(VPINPIINTERRUPT, LOW);                   // assert interrupt output
   }
-  Serial.println(Entry, HEX);
-  signed char Steps;
-  // debug
-  switch(Event)
-  {
-    case eNoEvent:                           // no event present
-//      Serial.println("BUG: event processed but no event present");
-      break;
-
-    case eEvVFOStep:                           // VFO encoder steps
-      Steps = (signed int)EventData;
-      Steps |= ((Steps&0b00001000)<<1);        // sign extend to bit 4
-      Steps |= ((Steps&0b00001000)<<2);        // sign extend to bit 5
-      Steps |= ((Steps&0b00001000)<<3);        // sign extend to bit 6
-      Steps |= ((Steps&0b00001000)<<4);        // sign extend to bit 7
-//      Serial.print("VFO encoder: steps = ");
-//      Serial.println(Steps);
-      break;
-      
-    case eEvEncoderStep:                       // ordinary encoder steps
-//      Serial.print("dual encoder: number = ");
-//      Serial.print(EventData >> 4);
-//      Serial.print(" steps = ");
-      Steps = (signed int)(EventData & 0xF);
-      Steps |= ((Steps&0b00001000)<<1);        // sign extend to bit 4
-      Steps |= ((Steps&0b00001000)<<2);        // sign extend to bit 5
-      Steps |= ((Steps&0b00001000)<<3);        // sign extend to bit 6
-      Steps |= ((Steps&0b00001000)<<4);        // sign extend to bit 7
-//      Serial.println(Steps);
-      break;
-      
-    case eEvButtonPress:                       // pushbutton press
-//      Serial.print("button press: button code = ");
-//      Serial.println(EventData);
-      break;
-      
-    case eEvButtonLongpress:                   // pushbutton long press
-//      Serial.print("button long press: button code = ");
-//      Serial.println(EventData);
-      break;
-      
-    case eEvButtonRelease:                     // pushbutton release
-//      Serial.print("button release: button code = ");
-//      Serial.println(EventData);
-      break;
-
-  }
 }
 
 //
@@ -164,7 +117,9 @@ void AddEvent2Q(EEventType Event, byte EventData)
 // Slave write: 3 byte to Arduino (receiveEvent)
 // Slave read: 1 byte to Arduino (receivEvent) followed by 2 bytes from Arduino (requestEvent)
 //
-int eventcount = 0;
+
+
+
 //
 // interrupt handler when data requested from I2C slave read
 // response is 16 bits: either an event queue entry + length; or 0
@@ -175,7 +130,6 @@ void requestEvent()
   bool Success;
   signed int Entries;
   unsigned int Response = 0;                  // response code to I2C
-//  Serial.println("requestEvent");
 
   if(GAddressRegister == VIDADDR)
   {
@@ -187,7 +141,7 @@ void requestEvent()
      Response = HWVERSION;
      digitalWrite(VPINPIINTERRUPT, HIGH);                   // clear interrupt output
   }
-    else if (GAddressRegister == VLEDADDR)
+  else if (GAddressRegister == VLEDADDR)
     Response = GLEDWord;
   else if (GAddressRegister == VEVENTADDR)
   {
@@ -204,13 +158,6 @@ void requestEvent()
         ReadPtr = 0;
       Response |= ((Entries & 0xF)<<12);
     }
-//    Serial.print(Response);
-//    Serial.print("; ");
-//    if(eventcount++ > 60)
-//    {
-//      eventcount=0;
-//      Serial.println();
-//    }
   }
   Wire.write(Response & 0xFF);            // respond with message of 2 bytes, low byte 1st
   Wire.write((Response >> 8) & 0xFF);     // respond with message of 2 bytes high byte
@@ -239,20 +186,20 @@ void receiveEvent(int Count)
 //  Serial.print(Count);
 //  Serial.print(": ");
   GAddressRegister = Wire.read(); // receive address register
+  Count--;
 
-  if(Count > 1)
+  if(Count != 0)
   {
-    while(Wire.available()) // loop through all but the last
+//    while(Wire.available()) // loop through all but the last
+    while(Count != 0) // loop through all but the last
     {
       Data = Wire.read(); // receive byte as a character
-//      Serial.print(Data);
-//      Serial.print(" ");
+      Count--;
       if(Cntr++ == 0)
         CommandWord = Data;
       else
         CommandWord = (CommandWord & 0xFF) | (Data << 8);
     }
-//    Serial.println();
     if(GAddressRegister == VLEDADDR)
       GLEDWord = CommandWord;
   }

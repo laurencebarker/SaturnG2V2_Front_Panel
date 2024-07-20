@@ -21,8 +21,8 @@
 //
 // hardware and software version: send back to console on request
 //
-#define SWVERSION 6
-#define HWVERSION 1
+#define SWVERSION 7
+#define HWVERSION 2
 
 //
 // product iD: send back to console on request
