@@ -1,7 +1,5 @@
 This is the folder for the most recent, "Nano Every" sketch for the Andromeda front panel
 
-This version has moved by to serial connection to the Raspberry pi following unresolved problems with i2c
-
 
 
 

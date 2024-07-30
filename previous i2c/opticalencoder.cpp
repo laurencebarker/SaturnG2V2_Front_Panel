@@ -7,8 +7,8 @@
 //
 // See "iom4809.h" for register definitions, bit maps etc
 //
-// the encoder is attached to A4 and A5 (PA2, PA3)
-// and PORTA pin change will need to be enabled. 
+// the encoder is attached to D0 and D1 (PC04, PC05)
+// and PORTC pin change will need to be enabled. 
 /////////////////////////////////////////////////////////////////////////
 
 #include <Arduino.h>
@@ -17,7 +17,7 @@
 #include "iopins.h"
 
 
-//#define VSWAPDIRECTION 1                    // if set, reverses direction
+#define VSWAPDIRECTION 1                    // if set, reverses direction
 
 
 // global variables
@@ -27,9 +27,8 @@ byte GPinState;
 byte GDivisor;                              // number of edge events per declared click
 
 
-//#define VENCODERPINS 0b00110000             // bitmap to select the two encoder inputs when on D0, D1
-#define VENCODERPINS 0b00001100             // bitmap to select the two encoder inputs when on A4, A5
-#define VENCODERDIRPIN 0b00001000           // pin3 gives direction
+#define VENCODERPINS 0b00110000             // bitmap to select the two encoder inputs
+#define VENCODERDIRPIN 0b00100000           // pin 5 gives direction
 
 
 //
@@ -66,16 +65,17 @@ void InitOpticalEncoder(void)
   pinMode(VPINVFOENCODERA, INPUT_PULLUP);               // VFO encoder
   pinMode(VPINVFOENCODERB, INPUT_PULLUP);               // VFO encoder
   delayMicroseconds(1000);                              // allow pins to settle
-//  GPinState = (PORTC.IN & VENCODERPINS) >> 2;         // move to bits 3:2
-  GPinState = (PORTA.IN & VENCODERPINS);                // bits 3:2
+  GPinState = (PORTC.IN & VENCODERPINS) >> 2;           // bits 3:2
 //
 // now do interrupts differently depending on encoder type
 // for high res encoders, get an interrupt on one input rising edge
+#ifdef HIRESOPTICALENCODER
+  PORTC.PIN4CTRL = (PORT_PULLUPEN_bm | PORT_ISC_RISING_gc);               // pullup, rising edge interrupt
+#else
 // for low res (Broadcom type) encoders, get an interrupt on every edge
-//  PORTC.PIN4CTRL = (PORT_PULLUPEN_bm | PORT_ISC_BOTHEDGES_gc);            // pullup, both edges interrupt (D1, D0)
-//  PORTC.PIN5CTRL = (PORT_PULLUPEN_bm | PORT_ISC_BOTHEDGES_gc);            // pullup, both edges interrupt (D1, D0)
-  PORTA.PIN2CTRL = (PORT_PULLUPEN_bm | PORT_ISC_BOTHEDGES_gc);            // pullup, both edges interrupt (A4, A5)
-  PORTA.PIN3CTRL = (PORT_PULLUPEN_bm | PORT_ISC_BOTHEDGES_gc);            // pullup, both edges interrupt (A4, A5)
+  PORTC.PIN4CTRL = (PORT_PULLUPEN_bm | PORT_ISC_BOTHEDGES_gc);            // pullup, both edges interrupt
+  PORTC.PIN5CTRL = (PORT_PULLUPEN_bm | PORT_ISC_BOTHEDGES_gc);            // pullup, both edges interrupt
+#endif
 }
 
 
@@ -86,17 +86,24 @@ void InitOpticalEncoder(void)
 // for a broadcom type encoder - use both edges; find 4 bits from 2 bits current state and 2 bits previous state, and look up
 // for a high res encoder at just one interrupt per pulse - use int on one edge and use the sense of the other to set direction.
 //
-ISR(PORTA_PORT_vect)
+ISR(PORTC_PORT_vect)
 {
   byte InputValue;
   signed char Increment;
 
-//  InputValue = (PORTC.IN & VENCODERPINS) >> 2;          // move to bits 3:2
-  InputValue = (PORTA.IN & VENCODERPINS);                 // bits 3:2
-//  PORTC.INTFLAGS = 0b00110000;                            // clear interrupt flags
-  PORTA.INTFLAGS = 0b00001100;                            // clear interrupt flags
+#ifdef HIRESOPTICALENCODER                                // on interrupt - read the non interrupting pin to set direction
+  InputValue = PORTC.IN & VENCODERDIRPIN;
+  PORTC.INTFLAGS = 0b00010000;                            // clear interrupt flags
+  if(InputValue)
+    Increment = 1;
+  else
+    Increment = -1;
+#else                                               
+  InputValue = (PORTC.IN & VENCODERPINS) >> 2;            // bits 3:2
+  PORTC.INTFLAGS = 0b00110000;                            // clear interrupt flags
   GPinState = (GPinState >> 2) | InputValue;              // now have new bits in 3:2, old bits in 1:0
   Increment = StepsLookup[GPinState];
+#endif
 
 
 #ifdef VSWAPDIRECTION

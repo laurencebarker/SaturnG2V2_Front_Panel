@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////
 //
 // Saturn G2 front panel controller sketch by Laurence Barker G8NJJ
-// this sketch provides a knob and switch interface through USB serial
+// this sketch provides a knob and switch interface through I2C
 // copyright (c) Laurence Barker G8NJJ 2023
 //
 // the code is written for an Arduino Nano Every module
@@ -17,11 +17,11 @@
 #include "globalinclude.h"
 #include "mechencoder2.h"
 #include "opticalencoder.h"
-#include "cathandler.h"
 
 #include "encoders.h"
 #include "iopins.h"
 #include "configdata.h"
+#include "eventqueue.h"
 #include "button.h"
 #include "led.h"
 #include "SPIdata.h"
@@ -199,7 +199,6 @@ void EncoderTick(void)
 
   int16_t Movement;                                         // normal encoder movement since last update
   byte Cntr;                                                // count encoders
-  byte ReportNumber;
   
   for (Cntr=0; Cntr < VMAXENCODERS; Cntr++)
   {
@@ -208,11 +207,10 @@ void EncoderTick(void)
     {
       EncoderList[Cntr].LastPosition += Movement;
       if(GEncoderShiftActive && (Cntr >= 8))
-        ReportNumber = Cntr+2;                              // if shifted, last encder reports as a higher number
+        EventData = (Movement & 0x07) | ((Cntr+2) << 3);
       else
-        ReportNumber = Cntr;
-      CATHandleEncoder(ReportNumber, Movement);
-
+        EventData = (Movement & 0x07) | (Cntr << 3);
+      AddEvent2Q(eEvEncoderStep, EventData);
     }
   }
 
@@ -228,7 +226,14 @@ void EncoderTick(void)
 
     signed char ct = ReadOpticalEncoder();
     if (ct != 0)
-      CATHandleVFOEncoder(ct);
+    {
+      if(ct > 63)
+        ct=63;
+      else if(ct<-63)
+        ct=-63;
+      EventData = (byte)ct;
+      AddEvent2Q(eEvVFOStep, EventData);
+    }
   }
 }
 

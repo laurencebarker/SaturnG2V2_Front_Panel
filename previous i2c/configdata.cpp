@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////
 //
 // Saturn G2 front panel controller sketch by Laurence Barker G8NJJ
-// this sketch provides a knob and switch interface through USB serial
+// this sketch provides a knob and switch interface through I2C
 // copyright (c) Laurence Barker G8NJJ 2023
 //
 // the code is written for an Arduino Nano Every module

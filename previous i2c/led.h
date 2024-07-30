@@ -34,12 +34,11 @@ void ClearLEDs(void);
 
 
 //
-// LEDTick
+// LEDSelfTest
 // called after power up to test all LEDs; 
 // cycled through and lights each in turn until finished.
-// then write to LEDs as needed
 //
-void LEDTick(void);
+void LEDSelfTest(void);
 
 
 #endif //#ifndef

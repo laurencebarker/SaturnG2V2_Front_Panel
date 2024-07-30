@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////
 //
 // Saturn G2 front panel controller sketch by Laurence Barker G8NJJ
-// this sketch provides a knob and switch interface through USB serial
+// this sketch provides a knob and switch interface through I2C
 // copyright (c) Laurence Barker G8NJJ 2023
 //
 // the code is written for an Arduino Nano Every module
@@ -14,9 +14,10 @@
 #include "button.h"
 #include "iopins.h"
 #include "configdata.h"
-#include "cathandler.h"
+//#include "encoders.h"
 #include "led.h"
 #include "SPIdata.h"                             // for Andromeda h/w MCP23017
+#include "eventqueue.h"
 
 
 bool GBandShiftActive;                          // true if band shift is active
@@ -35,19 +36,6 @@ enum EScanStates
   eMultiPressed,                    // more thna one pressed - wait until released
   eWaitMultiReleased                // debounce state for release from multiple buttons pressed
 };
-
-//
-// enum for the event types
-//
-enum EEventType 
-{
-  eNoEvent,                           // no event present
-  eEvButtonPress,                       // pushbutton press
-  eEvButtonLongpress,                   // pushbutton long press
-  eEvButtonRelease                      // pushbutton release
-};
-
-
 
 //
 // scan codes for band and encoder shift buttons
@@ -233,17 +221,6 @@ byte GetScanCode()
 }
 
 
-
-//enum EEventType 
-//{
-//  eNoEvent,                           // no event present
-//  eEvVFOStep,                           // VFO encoder steps
-//  eEvEncoderStep,                       // ordinary encoder steps
-//  eEvButtonPress,                       // pushbutton press
-//  eEvButtonLongpress,                   // pushbutton long press
-//  eEvButtonRelease                      // pushbutton release
-//};
-
 //
 // function to lookup the correct button code and add event to queue
 // if shift is active, use the second lookup table
@@ -251,9 +228,7 @@ byte GetScanCode()
 //
 void SendButtonCode(EEventType ButtonEvent, byte ScanCode, bool Shifted)
 {
-  byte ButtonCode;              // message report code
-  bool IsPress = false;         // true for a press event
-  bool IsLong = false;          // true also if long press
+  byte ButtonCode;             // message report code
 
   if (ScanCode != 0xFF)
   {
@@ -263,16 +238,7 @@ void SendButtonCode(EEventType ButtonEvent, byte ScanCode, bool Shifted)
     if(GEncoderShiftActive && (ButtonCode == VENC5BUTTONCODE))
       ButtonCode = VENC5SHIFTEDBUTTONCODE;
     if (ButtonCode != 0)
-    {
-      if(ButtonEvent == eEvButtonPress)
-        IsPress = true;
-      else if (ButtonEvent == eEvButtonLongpress)
-      {
-        IsPress = true;
-        IsLong = true;
-      }
-      CATHandlePushbutton(ButtonCode, IsPress, IsLong); 
-    }
+      AddEvent2Q(ButtonEvent, ButtonCode);      //CATHandlePushbutton(ButtonCode, true, IsLongPress); 
   }
 }
 

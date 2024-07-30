@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////
 //
 // Saturn G2 front panel controller sketch by Laurence Barker G8NJJ
-// this sketch provides a knob and switch interface through USB serial
+// this sketch provides a knob and switch interface through I2C
 // copyright (c) Laurence Barker G8NJJ 2023
 //
 // the code is written for an Arduino Nano Every module
@@ -12,11 +12,8 @@
 #ifndef __IOPINS_H
 #define __IOPINS_H
 
-//#define VPINVFOENCODERA 0         // VFO encoder (NOTE the encoder code reads these direct so if changed, that code will need to be changed too!)
-//#define VPINVFOENCODERB 1
-
-#define VPINVFOENCODERA A5         // VFO encoder (NOTE the encoder code reads these direct so if changed, that code will need to be changed too!)
-#define VPINVFOENCODERB A4
+#define VPINVFOENCODERA 0         // VFO encoder (NOTE the encoder code reads these direct so if changed, that code will need to be changed too!)
+#define VPINVFOENCODERB 1
 
 #define VPINENCODER9A 2           // encoder 9 (5 upper)
 #define VPINENCODER9B 3

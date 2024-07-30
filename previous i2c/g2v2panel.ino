@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////
 //
 // Saturn G2 front panel controller sketch by Laurence Barker G8NJJ
-// this sketch provides a knob and switch interface through USB serial
+// this sketch provides a knob and switch interface through I2C
 // copyright (c) Laurence Barker G8NJJ 2023
 //
 // the code is written for an Arduino Nano Every module
@@ -14,10 +14,10 @@
 #include "globalinclude.h"
 #include "iopins.h"
 #include "configdata.h"
-#include "cathandler.h"
 #include "encoders.h"
 #include "SPIdata.h"
 #include "button.h"
+#include "eventqueue.h"
 #include "led.h"
 
 
@@ -53,6 +53,7 @@ void SetupTimerForInterrupt(int Milliseconds)
 void setup() 
 {
   Serial.begin(9600);                 // PC communication
+  Wire.setClock(400000);
 
   delay(1000);
 //
@@ -74,10 +75,7 @@ void setup()
 // encoder
 //
   InitEncoders();
-  //
-// CAT
-//
-  InitCAT();
+  InitialiseI2CSlave();
 }
 
 
@@ -125,17 +123,14 @@ void loop()
 //
 // 2ms tick code here:
 //
-    EncoderTick();                                // update encoder inputs
-    ButtonTick();                                 // update the pushbutton sequencer
-  //
-// look for any CAT commands in the serial input buffer and process them
-//    
-    ScanParseSerial();
-    LEDTick();                                    // selftest of LEDs at startup
+  EventQueueTick();                             // update LEDs
+  EncoderTick();                                // update encoder inputs
+  ButtonTick();                                 // update the pushbutton sequencer
+  LEDSelfTest();                                // selftest of LEDs at startup
 // 
 // last action - drive the new switch matrix column output
 //
-    AssertMatrixColumn();
+  AssertMatrixColumn();
   }
 }
 

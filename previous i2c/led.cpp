@@ -17,9 +17,6 @@ byte I2CLEDBits;                  // 3 bits data for LEDs, in bits 2:0 (init to 
 bool LEDTestComplete;             // true if tests complete
 byte TestLED;                     // LED number to test
 byte LEDLitTime;                  // time count (in ticks) each LED lit for
-unsigned int GLEDTestWord;        // LED bits during test
-unsigned int GLEDExtWord;         // LED bits from external messages
-
 
 #define VLEDBITMASK 0b11110000    // bit mask for LED bits that are allowed to be set
 
@@ -53,27 +50,10 @@ LEDType LEDPinList[] =
 
 
 
-
 //
-// set LED from external message
-// LED state written to a word,that is then written to LEDs periodically
 // note LEDs numbered 0-(N-1) here!
 //
 void SetLED(byte LEDNumber, bool State)
-{
-  unsigned int BitPosition;
-
-  BitPosition = 1 << LEDNumber;
-  if(State)
-    GLEDExtWord |= BitPosition;
-  else
-    GLEDExtWord &= ~BitPosition;              // clear the required bit
-}
-
-//
-// note LEDs numbered 0-(N-1) here!
-// write an individual LED off or on
-void WriteLED(byte LEDNumber, bool State)
 {
   byte IOPin;
   byte BitPosition;
@@ -110,7 +90,7 @@ void ClearLEDs(void)
   byte Cntr;
 
   for (Cntr = 0; Cntr < VMAXINDICATORS; Cntr++)
-    WriteLED(Cntr, false);
+    SetLED(Cntr, false);
 }
 
 
@@ -119,14 +99,13 @@ bool GLEDsExtinguishing;
 #define VTESTTIMEPERLED 50       // 100ms
 
 //
-// LEDTick
+// LEDSelfTest
 // called after power up to test all LEDs; 
 // cycled through and lights each in turn until finished.
-// then write to LEDs as needed
+// TestLED=1 means we are testing LED0
 //
-void LEDTick(void)
+void LEDSelfTest(void)
 {
-  unsigned int Mask;
   if(!LEDTestComplete)
   {
     if(LEDLitTime == 0)                 // if timed out - move on to next LED
@@ -145,31 +124,14 @@ void LEDTick(void)
       else                              // increment LED & re-start count
       {
         LEDLitTime = VTESTTIMEPERLED;
-        Mask = 1 << LEDTestOrder[TestLED];
         if(GLEDsExtinguishing == true)
-          GLEDTestWord &= ~ Mask;
+          SetLED(LEDTestOrder[TestLED], false);
         else
-          GLEDTestWord |= Mask;
+          SetLED(LEDTestOrder[TestLED], true);
         TestLED++;                      // and light new one
       }
     }
     else
       LEDLitTime--;
-  }
-//
-// now write all LEDs
-//
-  byte Cntr;
-  unsigned int LEDWord;
-
-  if(LEDTestComplete)                                       // get the word to shift
-    LEDWord = GLEDExtWord;
-  else
-    LEDWord = GLEDTestWord;
-
-  for(Cntr=0; Cntr < VMAXINDICATORS; Cntr++)
-  {
-    WriteLED(Cntr, (bool)(LEDWord & 1));
-    LEDWord = LEDWord >> 1;
   }
 }

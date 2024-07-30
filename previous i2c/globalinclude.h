@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////
 //
 // Saturn G2 front panel controller sketch by Laurence Barker G8NJJ
-// this sketch provides a knob and switch interface through USB serial
+// this sketch provides a knob and switch interface through I2C
 // copyright (c) Laurence Barker G8NJJ 2023
 //
 // the code is written for an Arduino Nano Every module
@@ -13,11 +13,15 @@
 #define __globalinclude_h
 
 
+//
+// encoder type: for ball bearing encoder, the parameter should be defined
+//
+//#define HIRESOPTICALENCODER 1
 
 //
 // hardware and software version: send back to console on request
 //
-#define SWVERSION 9
+#define SWVERSION 7
 #define HWVERSION 2
 
 //
