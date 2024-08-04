@@ -19,7 +19,7 @@
 //
 // input buffer
 //
-#define CATSERIAL Serial                            // allows easy change to SerialUSB
+
 #define VBUFLENGTH 128
 char GCATInputBuffer[VBUFLENGTH];
 char* GCATWritePtr;

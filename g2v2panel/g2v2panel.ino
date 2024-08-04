@@ -52,7 +52,7 @@ void SetupTimerForInterrupt(int Milliseconds)
 //
 void setup() 
 {
-  Serial.begin(9600);                 // PC communication
+  CATSERIAL.begin(9600);                 // PC communication
 
   delay(1000);
 //

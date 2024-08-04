@@ -37,5 +37,9 @@
 #define VMAXENCODERS 10             // configurable, not including VFO
 #define VMAXBUTTONS 34
 
+//
+// define the serial port used for CAT
+//
+#define CATSERIAL Serial1                            // allows easy change to SerialUSB
 
 #endif      // file sentry
